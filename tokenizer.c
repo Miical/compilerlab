@@ -49,7 +49,7 @@ Token get_next_token() {
         code = reserve();
         if (code == 0) {
             value = (void *)insert_id();
-            return (Token){111, value};
+            return (Token){IDENTIFIER, value};
         } else {
             return (Token){code, NULL};
         }
@@ -59,93 +59,93 @@ Token get_next_token() {
         }
         retract();
         value = (void *)insert_const();
-        return (Token) {100, value};
+        return (Token) {CONSTANT, value};
     } else {
         switch(ch) {
             case '+':
                 get_char();
                 if (ch == '+') {
-                    return (Token){56, NULL};
+                    return (Token){INCREMENT, NULL};
                 } else {
                     retract();
-                    return (Token){41, NULL};
+                    return (Token){PLUS, NULL};
                 }
             case '-':
                 get_char();
                 if (ch == '-') {
-                    return (Token){57, NULL};
+                    return (Token){DECREMENT, NULL};
                 } else {
                     retract();
-                    return (Token){42, NULL};
+                    return (Token){MINUS, NULL};
                 }
             case '*':
-                return (Token){43, NULL};
+                return (Token){MUTIPLE, NULL};
             case '/':
-                return (Token){44, NULL};
+                return (Token){DIVIDE, NULL};
             case '%':
-                return (Token){45, NULL};
+                return (Token){MOD, NULL};
             case '=':
                 get_char();
                 if (ch == '=') {
-                    return (Token){51, NULL};
+                    return (Token){EQ, NULL};
                 } else {
                     retract();
-                    return (Token){46, NULL};
+                    return (Token){ASSIGN, NULL};
                 }
             case '>':
                 get_char();
                 if (ch == '=') {
-                    return (Token){48, NULL};
+                    return (Token){GEQ, NULL};
                 } else {
                     retract();
-                    return (Token){47, NULL};
+                    return (Token){GT, NULL};
                 }
             case '<':
                 get_char();
                 if (ch == '=') {
-                    return (Token){50, NULL};
+                    return (Token){LEQ, NULL};
                 } else {
                     retract();
-                    return (Token){49, NULL};
+                    return (Token){LT, NULL};
                 }
             case '!':
                 get_char();
                 if (ch == '=') {
-                    return (Token){52, NULL};
+                    return (Token){NEQ, NULL};
                 } else {
                     retract();
-                    return (Token){55, NULL};
+                    return (Token){NOT, NULL};
                 }
             case '&':
                 get_char();
                 if (ch == '&') {
-                    return (Token){53, NULL};
+                    return (Token){AND, NULL};
                 } else {
                     proc_error(TOKENIZER_ERROR, "expect '&' but get '%c'", ch);
                 }
             case '|':
                 get_char();
                 if (ch == '|') {
-                    return (Token){54, NULL};
+                    return (Token){OR, NULL};
                 } else {
                     proc_error(TOKENIZER_ERROR, "expect '|' but get '%c'", ch);
                 }
             case '(':
-                return (Token){81, NULL};
+                return (Token){LPAREN, NULL};
             case ')':
-                return (Token){82, NULL};
+                return (Token){RPAREN, NULL};
             case ';':
-                return (Token){84, NULL};
+                return (Token){SEMI, NULL};
             case ',':
-                return (Token){85, NULL};
+                return (Token){COMMA, NULL};
             case '{':
-                return (Token){86, NULL};
+                return (Token){LCURLY, NULL};
             case '}':
-                return (Token){87, NULL};
+                return (Token){RCURLY, NULL};
             case '[':
-                return (Token){88, NULL};
+                return (Token){LBRACKET, NULL};
             case ']':
-                return (Token){89, NULL};
+                return (Token){RBRACKET, NULL};
             default:
                 break;
         }
@@ -200,10 +200,10 @@ static bool is_digit() {
  * 对strToken中的字符串查找保留字表，若它是一个保留字则返回它的编码，否则返回0值。
  */
 static int reserve() {
-    if (!strcmp(str_token, "int")) return 5;
-    else if (!strcmp(str_token, "else")) return 15;
-    else if (!strcmp(str_token, "if")) return 17;
-    else if (!strcmp(str_token, "while")) return 20;
+    if (!strcmp(str_token, "int")) return INT;
+    else if (!strcmp(str_token, "else")) return ELSE;
+    else if (!strcmp(str_token, "if")) return IF;
+    else if (!strcmp(str_token, "while")) return WHILE;
     else return 0;
 }
 

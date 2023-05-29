@@ -1,4 +1,5 @@
 a.out
+parser
 tokenizer
 *.o
 .DS_Store
