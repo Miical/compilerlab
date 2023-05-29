@@ -21,7 +21,7 @@ void parser_init() {
 
 static void match_factor() {
     if (sym.type != CONSTANT)
-        proc_error(PARSER_ERROR, "expect CONSTANT but get type #%d", sym.type);
+        proc_error(PARSER_ERROR, "expect CONSTANT but got type #%d", sym.type);
     debug_print("factor -> num\n");
     advance();
 }

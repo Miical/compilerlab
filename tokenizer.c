@@ -120,14 +120,14 @@ Token get_next_token() {
                 if (ch == '&') {
                     return (Token){AND, NULL};
                 } else {
-                    proc_error(TOKENIZER_ERROR, "expect '&' but get '%c'", ch);
+                    proc_error(TOKENIZER_ERROR, "expect '&' but got '%c'", ch);
                 }
             case '|':
                 get_char();
                 if (ch == '|') {
                     return (Token){OR, NULL};
                 } else {
-                    proc_error(TOKENIZER_ERROR, "expect '|' but get '%c'", ch);
+                    proc_error(TOKENIZER_ERROR, "expect '|' but got '%c'", ch);
                 }
             case '(':
                 return (Token){LPAREN, NULL};
@@ -150,8 +150,7 @@ Token get_next_token() {
         }
     }
     if (ch != EOF) {
-        printf("Can't match character '%c'\n", ch);
-        proc_error(TOKENIZER_ERROR, "read at the end of the file");
+        proc_error(TOKENIZER_ERROR, "unrecognized character '%c'", ch);
     }
     return (Token){0, NULL};
 }

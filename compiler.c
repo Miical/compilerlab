@@ -29,7 +29,7 @@ void proc_error(ErrorType error_type, const char* format, ...) {
 }
 
 /**
- * 处于调试模式时输出.
+ * 处于调试模式时输出。
  */
 void debug_print(const char* format, ...) {
     #ifdef DEBUG
