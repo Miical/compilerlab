@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include "compiler.h"
 #include "tokenizer.h"
 
 static FILE* source;
@@ -20,7 +21,6 @@ static int reserve(void);
 static void retract(void);
 static char* insert_id(void);
 static int* insert_const(void);
-static void proc_error(void);
 
 char symbols_table[MAX_TABLE_ITEMS][MAX_STR_LEN];
 int constants_table[MAX_TABLE_ITEMS];
@@ -30,15 +30,14 @@ int symbols_table_len, constants_table_len;
 void tokenizer_init(const char *filename) {
     source = fopen(filename, "r");
     if (source == NULL) {
-        printf("Can't open file '%s'.\n", filename);
-        proc_error();
+        proc_error(TOKENIZER_ERROR, "can't open file '%s'", filename);
     }
     symbols_table_len = 0, constants_table_len = 0, tokenlen = 0;
     str_token[0] = '\0';
     ch = ' ';
 }
 
-token get_next_token() {
+Token get_next_token() {
     int code; void *value;
     tokenlen = 0;
     get_char(); get_BC();
@@ -50,9 +49,9 @@ token get_next_token() {
         code = reserve();
         if (code == 0) {
             value = (void *)insert_id();
-            return (token){111, value};
+            return (Token){111, value};
         } else {
-            return (token){code, NULL};
+            return (Token){code, NULL};
         }
     } else if (is_digit()) {
         while (is_digit()) {
@@ -60,104 +59,102 @@ token get_next_token() {
         }
         retract();
         value = (void *)insert_const();
-        return (token) {100, value};
+        return (Token) {100, value};
     } else {
         switch(ch) {
             case '+':
                 get_char();
                 if (ch == '+') {
-                    return (token){56, NULL};
+                    return (Token){56, NULL};
                 } else {
                     retract();
-                    return (token){41, NULL};
+                    return (Token){41, NULL};
                 }
             case '-':
                 get_char();
                 if (ch == '-') {
-                    return (token){57, NULL};
+                    return (Token){57, NULL};
                 } else {
                     retract();
-                    return (token){42, NULL};
+                    return (Token){42, NULL};
                 }
             case '*':
-                return (token){43, NULL};
+                return (Token){43, NULL};
             case '/':
-                return (token){44, NULL};
+                return (Token){44, NULL};
             case '%':
-                return (token){45, NULL};
+                return (Token){45, NULL};
             case '=':
                 get_char();
                 if (ch == '=') {
-                    return (token){51, NULL};
+                    return (Token){51, NULL};
                 } else {
                     retract();
-                    return (token){46, NULL};
+                    return (Token){46, NULL};
                 }
             case '>':
                 get_char();
                 if (ch == '=') {
-                    return (token){48, NULL};
+                    return (Token){48, NULL};
                 } else {
                     retract();
-                    return (token){47, NULL};
+                    return (Token){47, NULL};
                 }
             case '<':
                 get_char();
                 if (ch == '=') {
-                    return (token){50, NULL};
+                    return (Token){50, NULL};
                 } else {
                     retract();
-                    return (token){49, NULL};
+                    return (Token){49, NULL};
                 }
             case '!':
                 get_char();
                 if (ch == '=') {
-                    return (token){52, NULL};
+                    return (Token){52, NULL};
                 } else {
                     retract();
-                    return (token){55, NULL};
+                    return (Token){55, NULL};
                 }
             case '&':
                 get_char();
                 if (ch == '&') {
-                    return (token){53, NULL};
+                    return (Token){53, NULL};
                 } else {
-                    retract();
-                    proc_error();
+                    proc_error(TOKENIZER_ERROR, "expect '&' but get '%c'", ch);
                 }
             case '|':
                 get_char();
                 if (ch == '|') {
-                    return (token){54, NULL};
+                    return (Token){54, NULL};
                 } else {
-                    retract();
-                    proc_error();
+                    proc_error(TOKENIZER_ERROR, "expect '|' but get '%c'", ch);
                 }
             case '(':
-                return (token){81, NULL};
+                return (Token){81, NULL};
             case ')':
-                return (token){82, NULL};
+                return (Token){82, NULL};
             case ';':
-                return (token){84, NULL};
+                return (Token){84, NULL};
             case ',':
-                return (token){85, NULL};
+                return (Token){85, NULL};
             case '{':
-                return (token){86, NULL};
+                return (Token){86, NULL};
             case '}':
-                return (token){87, NULL};
+                return (Token){87, NULL};
             case '[':
-                return (token){88, NULL};
+                return (Token){88, NULL};
             case ']':
-                return (token){89, NULL};
+                return (Token){89, NULL};
             default:
                 break;
         }
     }
     if (ch != EOF) {
         printf("Can't match character '%c'\n", ch);
-        proc_error();
+        proc_error(TOKENIZER_ERROR, "read at the end of the file");
     }
-    return (token){0, NULL};
+    return (Token){0, NULL};
 }
 
 
@@ -216,7 +213,7 @@ static int reserve() {
 static void retract() {
     ch = ' ';
     if (fseek(source, -sizeof(char), SEEK_CUR))
-        proc_error();
+        proc_error(TOKENIZER_ERROR, "retract at the beginning of the file");
 }
 
 /**
@@ -242,10 +239,3 @@ static int* insert_const() {
     return &constants_table[constants_table_len - 1];
 }
 
-/**
- * 错误处理。
- */
-static void proc_error(void) {
-   fprintf(stderr, "Error\n");
-   exit(EXIT_FAILURE);
-}

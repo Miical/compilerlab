@@ -7,12 +7,12 @@
 typedef struct {
     int type;
     void *val;
-} token;
+} Token;
 
 extern char symbols_table[MAX_TABLE_ITEMS][MAX_STR_LEN];
 extern int constants_table[MAX_TABLE_ITEMS];
 
 void tokenizer_init(const char *filename);
-token get_next_token();
+Token get_next_token();
 
 #endif

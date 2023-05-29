@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
     }
 
     tokenizer_init(argv[1]);
-    token t;
+    Token t;
     while ((t = get_next_token()).type != 0) {
         if (t.type == 111) {
             printf("<%d, %s>\n", t.type, (char *)t.val);
