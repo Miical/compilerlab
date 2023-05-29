@@ -27,3 +27,15 @@ void proc_error(ErrorType error_type, const char* format, ...) {
     va_end(args);
     exit(EXIT_FAILURE);
 }
+
+/**
+ * 处于调试模式时输出.
+ */
+void debug_print(const char* format, ...) {
+    #ifdef DEBUG
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    #endif
+}

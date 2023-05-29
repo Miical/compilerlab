@@ -6,6 +6,7 @@ typedef enum{
     PARSER_ERROR
 } ErrorType;
 
+void debug_print(const char* format, ...);
 void proc_error(ErrorType error_type, const char* format, ...);
 
 #endif

@@ -26,7 +26,6 @@ char symbols_table[MAX_TABLE_ITEMS][MAX_STR_LEN];
 int constants_table[MAX_TABLE_ITEMS];
 int symbols_table_len, constants_table_len;
 
-
 void tokenizer_init(const char *filename) {
     source = fopen(filename, "r");
     if (source == NULL) {
@@ -156,7 +155,6 @@ Token get_next_token() {
     }
     return (Token){0, NULL};
 }
-
 
 /**
  * 将下一输入字符读到ch中，搜索指示器前移一字符位置。
