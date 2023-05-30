@@ -1,1 +1,6 @@
-9+5*2/3-6
+while(sum<10000)
+	if(a<b)
+		sum=sum*(c[10]+10);
+	else
+		c[10]=sum*c[10]+10;
+x[i,j]=sum;
