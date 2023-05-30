@@ -199,7 +199,7 @@ static void match_resta() {
 }
 
 static void match_elist() {
-    debug_print("elist -> expr rest1");
+    debug_print("elist -> expr rest1\n");
     match_expr();
     match_rest1();
 }
