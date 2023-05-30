@@ -3,6 +3,8 @@
 
 static Token sym;
 static void advance(void);
+static void ensure(int expecttype, const char* name);
+
 static void match_factor(void);
 static void match_unary(void);
 static void match_rest6(void);
@@ -35,12 +37,8 @@ static void match_factor() {
     if (sym.type == LPAREN) {
         advance();
         debug_print("factor -> (expr)\n");
-
         match_expr();
-
-        if (sym.type != RPAREN)
-            proc_error(PARSER_ERROR, "expect RPAREN but got type #%d", sym.type);
-        advance();
+        ensure(RPAREN, "RPAREN");
     } else if (sym.type == IDENTIFIER) {
         debug_print("factor -> loc\n");
         match_loc();
@@ -125,51 +123,24 @@ static void match_stmt() {
     if (sym.type == IDENTIFIER) {
         debug_print("stmt -> loc = expr;\n");
         match_loc();
-
-        if (sym.type != ASSIGN)
-            proc_error(PARSER_ERROR, "expect ASSIGN but got type #%d", sym.type);
-        advance();
-
+        ensure(ASSIGN, "ASSIGN");
         match_expr();
-
-        if (sym.type != SEMI)
-            proc_error(PARSER_ERROR, "expect SEMI but got type #%d", sym.type);
-        advance();
+        ensure(SEMI, "SEMI");
     } else if (sym.type == IF) {
         advance();
         debug_print("stmt -> if(bool) stmt else stmt\n");
-
-        if (sym.type != LPAREN)
-            proc_error(PARSER_ERROR, "expect LPAREN but got type #%d", sym.type);
-        advance();
-
+        ensure(LPAREN, "LPAREN");
         match_bool();
-
-        if (sym.type != RPAREN)
-            proc_error(PARSER_ERROR, "expect RPAREN but got type #%d", sym.type);
-        advance();
-
+        ensure(RPAREN, "RPAREN");
         match_stmt();
-
-        if (sym.type != ELSE)
-            proc_error(PARSER_ERROR, "expect ELSE but got type #%d", sym.type);
-        advance();
-
+        ensure(ELSE, "ELSE");
         match_stmt();
     } else if (sym.type == WHILE) {
         advance();
         debug_print("stmt -> while(bool) stmt\n");
-
-        if (sym.type != LPAREN)
-            proc_error(PARSER_ERROR, "expect LPAREN but got type #%d", sym.type);
-        advance();
-
+        ensure(LPAREN, "LPAREN");
         match_bool();
-
-        if (sym.type != RPAREN)
-            proc_error(PARSER_ERROR, "expect RPAREN but got type #%d", sym.type);
-        advance();
-
+        ensure(RPAREN, "RPAREN");
         match_stmt();
     } else {
         proc_error(PARSER_ERROR, "expect IDENTIFIER, IF or WHILE but got type #%d", sym.type);
@@ -189,10 +160,7 @@ static void match_resta() {
         advance();
         debug_print("resta -> [elist]\n");
         match_elist();
-
-        if (sym.type != RBRACKET)
-            proc_error(PARSER_ERROR, "expect RBRACKET but got type #%d", sym.type);
-        advance();
+        ensure(RBRACKET, "RBRACKET");
     } else {
         debug_print("resta -> <epsilon>\n");
     }
@@ -268,6 +236,16 @@ static void match_rop_expr() {
     } else {
         debug_print("rop_expr -> <epsilon>\n");
     }
+}
+
+/**
+ * 检测当前 Token sym，是否为 expecttype。
+ * 正确则移动至下一个 Token，否则进入错误处理。
+ */
+static void ensure(int expecttype, const char* name) {
+    if (sym.type != expecttype)
+        proc_error(PARSER_ERROR, "expect %s but got type #%d", name, sym.type);
+    advance();
 }
 
 /**
