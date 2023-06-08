@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g -DDEBUG
+CFLAGS=-Wall -g
 BINARIES=tokenizer parser
 OBJS=tokenizer.o parser.o compiler.o parsertest.o tokenizertest.o
 
