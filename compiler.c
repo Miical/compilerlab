@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#define MAX_BUF (1 << 14)
 char buf[MAX_BUF], *bufp;
 
 typedef struct {
@@ -22,6 +23,23 @@ void compiler_init() {
 }
 
 /**
+ * 将内容打印至缓冲区并返回位置。
+ */
+char *printbuf(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    char *p= bufp;
+    int num = vsprintf(bufp, format, args);
+    bufp += num + 1;
+    if ((char *)buf + MAX_BUF <= bufp)
+        proc_error(PROG_ERROR, "buf out of memory");
+
+    va_end(args);
+    return p;
+}
+
+/**
  * 提交一条四元式。
  */
 void emit(const char* first, const char* second,
@@ -36,11 +54,18 @@ void emit(const char* first, const char* second,
 }
 
 /**
+ * 用addr回填一个四元式。
+ */
+void backpatch_quad(int id, char *addr) {
+    quads[id].fourth = addr;
+}
+
+/**
  * 输出所有的四元式。
  */
 void output_quads() {
     for (int i = 0; i < nextquad; i++) {
-        printf("%d: %s, %s, %s, %s\n", i, quads[i].first, quads[i].second,
+        printf("%d:\t%s, %s, %s, %s\n", i, quads[i].first, quads[i].second,
             quads[i].third, quads[i].fourth);
     }
 }

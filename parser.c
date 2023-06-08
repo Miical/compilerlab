@@ -1,6 +1,23 @@
+#include <stdio.h>
 #include "compiler.h"
 #include "tokenizer.h"
-#include <stdio.h>
+#include "list.h"
+#define UNUSED_VALUE(v) (void)(v);
+
+typedef struct {
+    char *place;
+    char *offset;
+} place_offset;
+
+typedef struct {
+    List truelist;
+    List falselist;
+} bool_list;
+
+typedef struct {
+    char *array;
+    char *offset;
+} array_offset;
 
 static Token sym;
 static void advance(void);
@@ -12,22 +29,27 @@ static char *match_rest6(char *rest6_in);
 static char *match_term(void);
 static char *match_rest5(char* rest5_in);
 static char *match_expr(void);
-static void match_stmts(void);
-static void match_rest0(void);
-static void match_stmt(void);
-static char *match_loc(void);
-static char *match_resta(char* resta_inArray);
-static void match_elist(void);
-static void match_rest1(void);
-static void match_bool(void);
-static void match_equality(void);
-static void match_rest4(void);
-static void match_rel(void);
-static void match_rop_expr(void);
+static List match_stmts(void);
+static List match_rest0(List rest0_inNextlist);
+static List match_stmt(void);
+static place_offset match_loc(void);
+static place_offset match_resta(char* resta_inArray);
+static array_offset match_elist(char* elist_inArray);
+static array_offset match_rest1(char* rest1_inArray,
+    int rest1_inNdim, char* rest1_inPlace);
+static bool_list match_bool(void);
+static bool_list match_equality(void);
+static bool_list match_rest4(List rest4_inTruelist, List rest4_inFalselist);
+static bool_list match_rel(void);
+static bool_list match_rop_expr(char* rop_expr_inPlace);
+static int match_m(void);
+static List match_n(void);
 
 static unsigned int tempcnt;
 static char *newtemp();
 static char *make_num(int number);
+static char *make_arrayelem(char* place, char *offset);
+static char *limit(char *array, int j);
 
 void parser_match() {
     match_stmts();
@@ -48,7 +70,13 @@ static char *match_factor() {
         ensure(RPAREN, "RPAREN");
     } else if (sym.type == IDENTIFIER) {
         debug_print("factor -> loc\n");
-        factor_place = match_loc();
+        place_offset loc = match_loc();
+        if (loc.offset == NULL) {
+            factor_place = loc.place;
+        } else {
+            factor_place = newtemp();
+            emit("=[]", make_arrayelem(loc.place, loc.offset), "-", factor_place);
+        }
     } else if (sym.type == CONSTANT) {
         debug_print("factor -> <num>\n");
         factor_place = make_num(*(int *)sym.val);
@@ -132,146 +160,257 @@ static char *match_expr() {
     return expr_place;
 }
 
-static void match_stmts() {
+static List match_stmts() {
+    List stmts_nextlist = NULL;
     debug_print("stmts -> stmt rest0\n");
-    match_stmt();
-    match_rest0();
+    List stmt_nextlist =match_stmt();
+    List rest0_inNextlist = stmt_nextlist;
+    List rest0_nextlist = match_rest0(rest0_inNextlist);
+    stmts_nextlist = rest0_nextlist;
+    return stmts_nextlist;
 }
 
-static void match_rest0() {
+static List match_rest0(List rest0_inNextlist) {
+    List rest0_nextlist = NULL;
     if (sym.type == IDENTIFIER || sym.type == IF || sym.type == WHILE) {
         debug_print("rest0 -> stmt rest0\n");
-        match_stmt();
-        match_rest0();
+        int m_quad = match_m();
+        backpatch(rest0_inNextlist, make_num(m_quad));
+        List stmt_nextlist = match_stmt();
+        List rest0s_inNextlist = stmt_nextlist;
+        List rest0s_nextlist = match_rest0(rest0s_inNextlist);
+        rest0_nextlist = rest0s_nextlist;
     } else {
         debug_print("rest0 -> <epsilon>\n");
+        rest0_nextlist = rest0_inNextlist;
     }
+    return rest0_nextlist;
 }
 
-static void match_stmt() {
+static List match_stmt() {
+    List stmt_nextlist = NULL;
     if (sym.type == IDENTIFIER) {
         debug_print("stmt -> loc = expr;\n");
-        char *loc_place = match_loc();
+        place_offset loc = match_loc();
         ensure(ASSIGN, "ASSIGN");
         char *expr_place = match_expr();
         ensure(SEMI, "SEMI");
-        emit("=", expr_place, "-", loc_place);
+        if (loc.offset == NULL) {
+            emit("=", expr_place, "-", loc.place);
+        } else {
+            emit("[]=", expr_place, "-", make_arrayelem(loc.place, loc.offset));
+            stmt_nextlist = NULL;
+        }
     } else if (sym.type == IF) {
         advance();
-        debug_print("stmt -> if(bool) stmt else stmt\n");
+        debug_print("stmt -> if(bool) m stmt n else m stmt\n");
         ensure(LPAREN, "LPAREN");
-        match_bool();
+        bool_list bool = match_bool();
         ensure(RPAREN, "RPAREN");
-        match_stmt();
+        int m1_quad = match_m();
+        List stmt1_nextlist = match_stmt();
+        List n_nextlist = match_n();
         ensure(ELSE, "ELSE");
-        match_stmt();
+        int m2_quad = match_m();
+        List stmt2_nextlist = match_stmt();
+        backpatch(bool.truelist, make_num(m1_quad));
+        backpatch(bool.falselist, make_num(m2_quad));
+        stmt_nextlist = merge(merge(stmt1_nextlist, n_nextlist), stmt2_nextlist);
     } else if (sym.type == WHILE) {
         advance();
         debug_print("stmt -> while(bool) stmt\n");
         ensure(LPAREN, "LPAREN");
-        match_bool();
+        int m1_quad = match_m();
+        bool_list bool = match_bool();
         ensure(RPAREN, "RPAREN");
-        match_stmt();
+        int m2_quad = match_m();
+        List stmt1_nextlist = match_stmt();
+        backpatch(stmt1_nextlist, make_num(m1_quad));
+        backpatch(bool.truelist, make_num(m2_quad));
+        stmt_nextlist = bool.falselist;
+        emit("j", "-", "-", make_num(m1_quad));
     } else {
         proc_error(PARSER_ERROR, "expect IDENTIFIER, IF or WHILE but got type #%d", sym.type);
     }
+    return stmt_nextlist;
 }
 
-static char *match_loc() {
-    char *loc_place = NULL;
+static place_offset match_loc() {
+    place_offset loc;
     if (sym.type != IDENTIFIER)
         proc_error(PARSER_ERROR, "expect IDENTIFIER but got type #%d", sym.type);
     debug_print("loc -> <id> resta\n");
     char *resta_inArray = (char *)sym.val;
     advance();
-    loc_place = match_resta(resta_inArray);
-    return loc_place;
+    place_offset resta = match_resta(resta_inArray);
+    loc.place = resta.place;
+    loc.offset = resta.offset;
+    return loc;
 }
 
-static char *match_resta(char* resta_inArray) {
-    char *resta_place = NULL;
+static place_offset match_resta(char* resta_inArray) {
+    place_offset resta;
     if (sym.type == LBRACKET) {
         advance();
         debug_print("resta -> [elist]\n");
-        match_elist();
+        char *elist_inArray = resta_inArray;
+        array_offset elist = match_elist(elist_inArray);
         ensure(RBRACKET, "RBRACKET");
+        resta.place = newtemp();
+        emit("-", elist.array, "C", resta.place);
+        resta.offset = newtemp();
+        emit("*", "w", elist.offset, resta.offset);
     } else {
         debug_print("resta -> <epsilon>\n");
-        resta_place = resta_inArray;
+        resta.place = resta_inArray;
+        resta.offset = NULL;
     }
-    return resta_place;
+    return resta;
 }
 
-static void match_elist() {
+static array_offset match_elist(char* elist_inArray) {
+    array_offset elist;
     debug_print("elist -> expr rest1\n");
-    match_expr();
-    match_rest1();
+    char *expr_place = match_expr();
+    char *rest1_inArray = elist_inArray;
+    int rest1_inNdim = 1;
+    char* rest1_inPlace = expr_place;
+    array_offset rest1 = match_rest1(rest1_inArray, rest1_inNdim, rest1_inPlace);
+    elist.array = rest1.array;
+    elist.offset = rest1.offset;
+    return elist;
 }
 
-static void match_rest1() {
+static array_offset match_rest1(char* rest1_inArray,
+    int rest1_inNdim, char* rest1_inPlace) {
+    array_offset rest1;
     if (sym.type == COMMA) {
         advance();
         debug_print("rest1 -> ,expr rest1\n");
-        match_expr();
-        match_rest1();
+        char *expr_place = match_expr();
+        char *t = newtemp();
+        int m = rest1_inNdim + 1;
+        emit("*", rest1_inPlace, limit(rest1_inArray, m), t);
+        emit("+", t, expr_place, t);
+        char *rest1s_inArray = rest1_inArray;
+        int rest1s_inNdim = m;
+        char *rest1s_inNplace = t;
+        array_offset rest1s = match_rest1(rest1s_inArray,
+            rest1s_inNdim, rest1s_inNplace);
+        rest1.array = rest1s.array;
+        rest1.offset = rest1s.offset;
     } else {
         debug_print("rest1 -> <epsilon>\n");
+        rest1.array = rest1_inArray;
+        rest1.offset = rest1_inPlace;
     }
+    return rest1;
 }
 
-static void match_bool() {
+static bool_list match_bool() {
+    bool_list bool;
     debug_print("bool -> equality\n");
-    match_equality();
+    bool_list equality = match_equality();
+    bool.truelist = equality.truelist;
+    bool.falselist = equality.falselist;
+    return bool;
 }
 
-static void match_equality() {
+static bool_list match_equality() {
+    bool_list equality;
     debug_print("equality -> rel rest4\n");
-    match_rel();
-    match_rest4();
+    bool_list rel = match_rel();
+    List rest4_inTruelist = rel.truelist;
+    List rest4_inFalselist = rel.falselist;
+    bool_list rest4 = match_rest4(rest4_inTruelist, rest4_inFalselist);
+    equality.truelist = rest4.truelist;
+    equality.falselist = rest4.falselist;
+    return equality;
 }
 
-static void match_rest4() {
+static bool_list match_rest4(List rest4_inTruelist, List rest4_inFalselist) {
+    bool_list rest4;
     if (sym.type == EQ) {
         advance();
         debug_print("rest4 -> ==rel rest4\n");
         match_rel();
-        match_rest4();
+    // Mark
+        match_rest4(rest4_inTruelist, rest4_inFalselist);
     } else if (sym.type == NEQ) {
         advance();
         debug_print("rest4 -> !=rel rest4\n");
         match_rel();
-        match_rest4();
+    // Mark
+        match_rest4(rest4_inTruelist, rest4_inFalselist);
     } else {
         debug_print("rest4 -> <epsilon>\n");
     }
+    // Mark
+    rest4.truelist = rest4_inTruelist;
+    rest4.falselist = rest4_inFalselist;
+    return rest4;
 }
 
-static void match_rel() {
+static bool_list match_rel() {
+    bool_list rel;
     debug_print("rel -> expr rop_expr\n");
-    match_expr();
-    match_rop_expr();
+    char *expr_place = match_expr();
+    char *rop_expr_inPlace = expr_place;
+    bool_list rop_expr = match_rop_expr(rop_expr_inPlace);
+    rel.truelist = rop_expr.truelist;
+    rel.falselist = rop_expr.falselist;
+    return rel;
 }
 
-static void match_rop_expr() {
+static bool_list match_rop_expr(char* rop_expr_inPlace) {
+    bool_list rop_expr;
+    rop_expr.truelist = makelist(nextquad);
+    rop_expr.falselist= makelist(nextquad + 1);
     if (sym.type == LT) {
         advance();
         debug_print("rop_expr -> <expr\n");
-        match_expr();
+        char *expr_place = match_expr();
+        emit("j<", rop_expr_inPlace, expr_place, "-");
+        emit("j", "-", "-", "-");
     } else if (sym.type == LEQ) {
         advance();
         debug_print("rop_expr -> <=expr\n");
-        match_expr();
+        char *expr_place = match_expr();
+        emit("j<=", rop_expr_inPlace, expr_place, "-");
+        emit("j", "-", "-", "-");
     } else if (sym.type == GT) {
         advance();
         debug_print("rop_expr -> >expr\n");
-        match_expr();
+        char *expr_place = match_expr();
+        emit("j>", rop_expr_inPlace, expr_place, "-");
+        emit("j", "-", "-", "-");
     } else if (sym.type == GEQ) {
         advance();
         debug_print("rop_expr -> >=expr\n");
-        match_expr();
+        char *expr_place = match_expr();
+        emit("j>=", rop_expr_inPlace, expr_place, "-");
+        emit("j", "-", "-", "-");
     } else {
         debug_print("rop_expr -> <epsilon>\n");
+        emit("jnz", rop_expr_inPlace, "-", "-");
+        emit("j", "-", "-", "-");
     }
+    return rop_expr;
+}
+
+static int match_m(void) {
+    int m_quad;
+    debug_print("m -> <epsilon>\n");
+    m_quad = nextquad;
+    return m_quad;
+}
+
+static List match_n(void) {
+    List n_nextlist;
+    debug_print("n -> <epsilon>\n");
+    n_nextlist = makelist(nextquad);
+    emit("j", "-", "-", "0");
+    return n_nextlist;
 }
 
 /**
@@ -295,22 +434,27 @@ static void advance() {
  * 生成一个临时变量的名字。
  */
 static char *newtemp() {
-    char *p= bufp;
-    int num = sprintf(bufp, "t%d", ++tempcnt);
-    bufp += num + 1;
-    if ((char *)buf + MAX_BUF <= bufp)
-        proc_error(PROG_ERROR, "buf out of memory");
-    return p;
+    return printbuf("t%d", ++tempcnt);
 }
 
 /**
  * 将数字转为字符串，并放入缓存区。
  */
 static char *make_num(int number) {
-    char *p= bufp;
-    int num = sprintf(bufp, "%d", number);
-    bufp += num + 1;
-    if ((char *)buf + MAX_BUF <= bufp)
-        proc_error(PROG_ERROR, "buf out of memory");
-    return p;
+    return printbuf("%d", number);
+}
+
+/**
+ * 构造数组引用的字符串，并插入到缓存区。
+ */
+static char *make_arrayelem(char* place, char *offset) {
+    return printbuf("%s[%s]", place, offset);
+}
+
+/**
+ * 返回array数组的第j维长度。
+ */
+static char *limit(char *array, int j) {
+    UNUSED_VALUE(array);
+    return printbuf("n%d\n", j);
 }

@@ -1,12 +1,12 @@
 #ifndef COMPILER_H_
 #define COMPILER_H_
 
-#define MAX_BUF (1 << 14)
-extern char buf[MAX_BUF], *bufp;
+char *printbuf(const char* format, ...);
 
 extern unsigned int nextquad;
 void emit(const char* first, const char* second,
     const char* third, const char* fourth);
+void backpatch_quad(int id, char *addr);
 void output_quads();
 
 typedef enum{

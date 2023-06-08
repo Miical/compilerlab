@@ -1,12 +1,12 @@
 CC=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -DDEBUG
 BINARIES=tokenizer parser
-OBJS=tokenizer.o parser.o compiler.o parsertest.o tokenizertest.o
+OBJS=tokenizer.o parser.o compiler.o parsertest.o tokenizertest.o 
 
 all: ${BINARIES}
 
-parser: parsertest.o tokenizer.o parser.o compiler.o
-	${CC} ${CFLAGS} parsertest.o tokenizer.o parser.o compiler.o -o parser
+parser: parsertest.o tokenizer.o parser.o compiler.o list.o
+	${CC} ${CFLAGS} parsertest.o tokenizer.o parser.o compiler.o list.o -o parser
 
 tokenizer: tokenizertest.o compiler.o tokenizer.o
 	${CC} ${CFLAGS} tokenizertest.o compiler.o tokenizer.o -o tokenizer
@@ -26,5 +26,8 @@ parser.o: parser.h parser.c
 compiler.o: compiler.h compiler.c
 	${CC} ${CFLAGS} -c compiler.c
 
+list.o: list.h list.c
+	${CC} ${CFLAGS} -c list.c
+
 clean:
-	rm -f $(BINARIES) ${OBJS}
+	rm -f $(BINARIES) *.o
