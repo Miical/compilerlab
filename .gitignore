@@ -1,6 +1,5 @@
 a.out
-parser
-tokenizer
+compiler
 *.o
 .DS_Store
 *.DSYM/

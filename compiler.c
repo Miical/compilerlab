@@ -23,8 +23,11 @@ Quad quads[MAX_QUADS];
 unsigned int nextquad;
 
 static void print_help_message(char *name);
+static void output_quads();
+static void compiler_init();
+static void tokenizer();
 
-void compiler_init() {
+static void compiler_init() {
     bufp = buf;
     nextquad = 0;
 }
@@ -70,7 +73,7 @@ void backpatch_quad(int id, char *addr) {
 /**
  * 输出所有的四元式。
  */
-void output_quads() {
+static void output_quads() {
     for (int i = 0; i < nextquad; i++) {
         printf("%d:\t%s, %s, %s, %s\n", i, quads[i].first, quads[i].second,
             quads[i].third, quads[i].fourth);
@@ -131,15 +134,16 @@ void debug_print(const char* format, ...) {
  */
 static void print_help_message(char *name) {
     fprintf(stderr,
-        "Usage: %s [-hv] [file]\n"
+        "Usage: %s [-htp] [-o <file>] <file>\n"
         "Options:\n"
         "  -h          Prlong this help message.\n"
         "  -t          Lexical analysis only.\n"
-        "  -p          Parsing only.\n",
+        "  -p          Parsing only.\n"
+        "  -o <file>   Output file.\n",
         name);
 }
 
-void tokenizer() {
+static void tokenizer() {
     Token t;
     while ((t = get_next_token()).type != 0) {
         if (t.type == 111) {
@@ -154,15 +158,18 @@ void tokenizer() {
 
 int main(int argc, char* argv[]) {
     char opt;
-    char *filename = NULL;
+    char *outputfile = NULL;
     bool flagt = false, flagp = false;
-    while ((opt = getopt(argc, argv, "htpf:")) != -1) {
+    while ((opt = getopt(argc, argv, "htpo:")) != -1) {
         switch (opt) {
         case 't':
             flagt = true;
             break;
         case 'p':
             flagp = true;
+            break;
+        case 'o':
+            outputfile = optarg;
             break;
         case 'h':
         default:
@@ -175,11 +182,13 @@ int main(int argc, char* argv[]) {
         print_help_message(argv[0]);
         exit(EXIT_FAILURE);
     }
-    filename = argv[optind];
 
     compiler_init();
-    tokenizer_init(filename);
+    tokenizer_init(argv[optind]);
     parser_init();
+
+    if (outputfile != NULL)
+        freopen(outputfile, "w", stdout);
 
     if (flagt) {
         tokenizer();

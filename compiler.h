@@ -7,7 +7,6 @@ extern unsigned int nextquad;
 void emit(const char* first, const char* second,
     const char* third, const char* fourth);
 void backpatch_quad(int id, char *addr);
-void output_quads();
 
 typedef enum{
     TOKENIZER_ERROR,
@@ -17,7 +16,5 @@ typedef enum{
 
 void debug_print(const char* format, ...);
 void proc_error(ErrorType error_type, const char* format, ...);
-
-void compiler_init();
 
 #endif
