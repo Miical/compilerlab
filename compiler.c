@@ -1,7 +1,12 @@
-#include "compiler.h"
 #include <stdio.h>
+#include <stdbool.h>
+#include <getopt.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include "compiler.h"
+#include "tokenizer.h"
+#include "parser.h"
 
 #define MAX_BUF (1 << 14)
 char buf[MAX_BUF], *bufp;
@@ -16,6 +21,8 @@ typedef struct {
 #define MAX_QUADS (1 << 10)
 Quad quads[MAX_QUADS];
 unsigned int nextquad;
+
+static void print_help_message(char *name);
 
 void compiler_init() {
     bufp = buf;
@@ -98,14 +105,94 @@ void proc_error(ErrorType error_type, const char* format, ...) {
     exit(EXIT_FAILURE);
 }
 
+static bool debug_mode;
+
 /**
  * 处于调试模式时输出。
  */
 void debug_print(const char* format, ...) {
+    if (debug_mode) {
+        va_list args;
+        va_start(args, format);
+        vprintf(format, args);
+        va_end(args);
+        return;
+    }
     #ifdef DEBUG
     va_list args;
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
     #endif
+}
+
+/**
+ * 打印帮助信息。
+ */
+static void print_help_message(char *name) {
+    fprintf(stderr,
+        "Usage: %s [-hv] [file]\n"
+        "Options:\n"
+        "  -h          Prlong this help message.\n"
+        "  -t          Lexical analysis only.\n"
+        "  -p          Parsing only.\n",
+        name);
+}
+
+void tokenizer() {
+    Token t;
+    while ((t = get_next_token()).type != 0) {
+        if (t.type == 111) {
+            printf("<%d, %s>\n", t.type, (char *)t.val);
+        } else if (t.type == 100) {
+            printf("<%d, %d>\n", t.type, *(int *)t.val);
+        } else {
+            printf("<%d, - >\n", t.type);
+        }
+    }
+}
+
+int main(int argc, char* argv[]) {
+    char opt;
+    char *filename = NULL;
+    bool flagt = false, flagp = false;
+    while ((opt = getopt(argc, argv, "htpf:")) != -1) {
+        switch (opt) {
+        case 't':
+            flagt = true;
+            break;
+        case 'p':
+            flagp = true;
+            break;
+        case 'h':
+        default:
+            print_help_message(argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (optind + 1 != argc) {
+        print_help_message(argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    filename = argv[optind];
+
+    compiler_init();
+    tokenizer_init(filename);
+    parser_init();
+
+    if (flagt) {
+        tokenizer();
+        return 0;
+    }
+
+    if (flagp) {
+        debug_mode = true;
+        parser_match();
+        return 0;
+    }
+
+    parser_match();
+    output_quads();
+    return 0;
 }

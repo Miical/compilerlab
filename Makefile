@@ -1,33 +1,17 @@
 CC=gcc
-CFLAGS=-Wall -g -DDEBUG
-BINARIES=tokenizer parser
-OBJS=tokenizer.o parser.o compiler.o parsertest.o tokenizertest.o 
+CFLAGS=-Wall -g -O2
+BINARIES=compiler
+OBJS=tokenizer.o parser.o compiler.o
 
 all: ${BINARIES}
 
-parser: parsertest.o tokenizer.o parser.o compiler.o list.o
-	${CC} ${CFLAGS} parsertest.o tokenizer.o parser.o compiler.o list.o -o parser
+compiler: tokenizer.o parser.o compiler.o list.o
+	${CC} ${CFLAGS} tokenizer.o parser.o compiler.o list.o -o compiler
 
-tokenizer: tokenizertest.o compiler.o tokenizer.o
-	${CC} ${CFLAGS} tokenizertest.o compiler.o tokenizer.o -o tokenizer
-
-parsertest.o: parsertest.c
-	${CC} ${CFLAGS} -c parsertest.c
-
-tokenizertest.o: tokenizer.c
-	${CC} ${CFLAGS} -c tokenizertest.c
-
-tokenizer.o: tokenizer.h tokenizer.c
-	${CC} ${CFLAGS} -c tokenizer.c
-
-parser.o: parser.h parser.c
-	${CC} ${CFLAGS} -c parser.c
-
-compiler.o: compiler.h compiler.c
-	${CC} ${CFLAGS} -c compiler.c
-
-list.o: list.h list.c
-	${CC} ${CFLAGS} -c list.c
+tokenizer.o: tokenizer.h tokenizer.c compiler.h
+parser.o: parser.h parser.c list.h tokenizer.h compiler.h
+compiler.o: compiler.h compiler.c tokenizer.h parser.h
+list.o: list.h list.c compiler.h
 
 clean:
 	rm -f $(BINARIES) *.o

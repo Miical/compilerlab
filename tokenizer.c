@@ -159,11 +159,11 @@ Token get_next_token() {
  * 将下一输入字符读到ch中，搜索指示器前移一字符位置。
  */
 static void get_char() {
-    ch = getc(source);
+    ch = fgetc(source);
 }
 
 /**
- * 检查ch中的字符是否为空白。若是，则调用getChar直至ch中进入一个空白字符。
+ * 检查ch中的字符是否为空白。若是，则调用get_char直至ch中进入一个空白字符。
  */
 static void get_BC() {
     while (isblank((int)ch) || ch == '\n') {

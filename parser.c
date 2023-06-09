@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "compiler.h"
 #include "tokenizer.h"
+#include "parser.h"
 #include "list.h"
 #define UNUSED_VALUE(v) (void)(v);
 
@@ -53,7 +54,6 @@ static char *limit(char *array, int j);
 
 void parser_match() {
     match_stmts();
-    debug_print("[Complete]\n");
 }
 
 void parser_init() {
@@ -329,25 +329,22 @@ static bool_list match_equality() {
 }
 
 static bool_list match_rest4(List rest4_inTruelist, List rest4_inFalselist) {
-    bool_list rest4;
+    bool_list rest4 = { NULL, NULL };
     if (sym.type == EQ) {
         advance();
         debug_print("rest4 -> ==rel rest4\n");
         match_rel();
-    // Mark
-        match_rest4(rest4_inTruelist, rest4_inFalselist);
+        match_rest4(NULL, NULL);
     } else if (sym.type == NEQ) {
         advance();
         debug_print("rest4 -> !=rel rest4\n");
         match_rel();
-    // Mark
-        match_rest4(rest4_inTruelist, rest4_inFalselist);
+        match_rest4(NULL, NULL);
     } else {
         debug_print("rest4 -> <epsilon>\n");
+        rest4.truelist = rest4_inTruelist;
+        rest4.falselist = rest4_inFalselist;
     }
-    // Mark
-    rest4.truelist = rest4_inTruelist;
-    rest4.falselist = rest4_inFalselist;
     return rest4;
 }
 
@@ -456,5 +453,5 @@ static char *make_arrayelem(char* place, char *offset) {
  */
 static char *limit(char *array, int j) {
     UNUSED_VALUE(array);
-    return printbuf("n%d\n", j);
+    return printbuf("n%d", j);
 }
