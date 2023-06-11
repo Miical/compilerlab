@@ -1,8 +1,6 @@
-a = 1;
-b = 5 * a / 2 + 4 - 4;
-array[0] = 0;
-while(a<b)
-	if(c==d)
-		array[a]=y+z;
-	else
-		x=y-array[a];
+while (A[i]<B[j])
+    if (a<b)
+        a=b*B[j]-a*A[i];
+    else
+        A[i]=A[i]+c;
+x=x+A[i]+B[j];

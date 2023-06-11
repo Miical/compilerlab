@@ -75,7 +75,7 @@ static char *match_factor() {
             factor_place = loc.place;
         } else {
             factor_place = newtemp();
-            emit("=[]", make_arrayelem(loc.place, loc.offset), "-", factor_place);
+            emit("=[]", make_arrayelem(loc.place, loc.offset), "_", factor_place);
         }
     } else if (sym.type == CONSTANT) {
         debug_print("factor -> <num>\n");
@@ -156,14 +156,15 @@ static char *match_expr() {
     char *expr_place = NULL;
     debug_print("expr -> term rest5\n");
     char *term_place = match_term();
-    expr_place = match_rest5(term_place);
+    char *term5_in = term_place;
+    expr_place = match_rest5(term5_in);
     return expr_place;
 }
 
 static List match_stmts() {
     List stmts_nextlist = NULL;
     debug_print("stmts -> stmt rest0\n");
-    List stmt_nextlist =match_stmt();
+    List stmt_nextlist = match_stmt();
     List rest0_inNextlist = stmt_nextlist;
     List rest0_nextlist = match_rest0(rest0_inNextlist);
     stmts_nextlist = rest0_nextlist;
@@ -196,9 +197,9 @@ static List match_stmt() {
         char *expr_place = match_expr();
         ensure(SEMI, "SEMI");
         if (loc.offset == NULL) {
-            emit("=", expr_place, "-", loc.place);
+            emit("=", expr_place, "_", loc.place);
         } else {
-            emit("[]=", expr_place, "-", make_arrayelem(loc.place, loc.offset));
+            emit("[]=", expr_place, "_", make_arrayelem(loc.place, loc.offset));
             stmt_nextlist = NULL;
         }
     } else if (sym.type == IF) {
@@ -218,7 +219,7 @@ static List match_stmt() {
         stmt_nextlist = merge(merge(stmt1_nextlist, n_nextlist), stmt2_nextlist);
     } else if (sym.type == WHILE) {
         advance();
-        debug_print("stmt -> while(bool) stmt\n");
+        debug_print("stmt -> while(m bool) m stmt\n");
         ensure(LPAREN, "LPAREN");
         int m1_quad = match_m();
         bool_list bool = match_bool();
@@ -228,7 +229,7 @@ static List match_stmt() {
         backpatch(stmt1_nextlist, make_num(m1_quad));
         backpatch(bool.truelist, make_num(m2_quad));
         stmt_nextlist = bool.falselist;
-        emit("j", "-", "-", make_num(m1_quad));
+        emit("j", "_", "_", make_num(m1_quad));
     } else {
         proc_error(PARSER_ERROR, "expect IDENTIFIER, IF or WHILE but got type #%d", sym.type);
     }
@@ -361,36 +362,44 @@ static bool_list match_rel() {
 
 static bool_list match_rop_expr(char* rop_expr_inPlace) {
     bool_list rop_expr;
-    rop_expr.truelist = makelist(nextquad);
-    rop_expr.falselist= makelist(nextquad + 1);
     if (sym.type == LT) {
         advance();
         debug_print("rop_expr -> <expr\n");
         char *expr_place = match_expr();
-        emit("j<", rop_expr_inPlace, expr_place, "-");
-        emit("j", "-", "-", "-");
+        rop_expr.truelist = makelist(nextquad);
+        rop_expr.falselist= makelist(nextquad + 1);
+        emit("j<", rop_expr_inPlace, expr_place, "_");
+        emit("j", "_", "_", "_");
     } else if (sym.type == LEQ) {
         advance();
         debug_print("rop_expr -> <=expr\n");
         char *expr_place = match_expr();
-        emit("j<=", rop_expr_inPlace, expr_place, "-");
-        emit("j", "-", "-", "-");
+        rop_expr.truelist = makelist(nextquad);
+        rop_expr.falselist= makelist(nextquad + 1);
+        emit("j<=", rop_expr_inPlace, expr_place, "_");
+        emit("j", "_", "_", "_");
     } else if (sym.type == GT) {
         advance();
         debug_print("rop_expr -> >expr\n");
         char *expr_place = match_expr();
-        emit("j>", rop_expr_inPlace, expr_place, "-");
-        emit("j", "-", "-", "-");
+        rop_expr.truelist = makelist(nextquad);
+        rop_expr.falselist= makelist(nextquad + 1);
+        emit("j>", rop_expr_inPlace, expr_place, "_");
+        emit("j", "_", "_", "_");
     } else if (sym.type == GEQ) {
         advance();
         debug_print("rop_expr -> >=expr\n");
         char *expr_place = match_expr();
-        emit("j>=", rop_expr_inPlace, expr_place, "-");
-        emit("j", "-", "-", "-");
+        rop_expr.truelist = makelist(nextquad);
+        rop_expr.falselist= makelist(nextquad + 1);
+        emit("j>=", rop_expr_inPlace, expr_place, "_");
+        emit("j", "_", "_", "_");
     } else {
         debug_print("rop_expr -> <epsilon>\n");
-        emit("jnz", rop_expr_inPlace, "-", "-");
-        emit("j", "-", "-", "-");
+        rop_expr.truelist = makelist(nextquad);
+        rop_expr.falselist= makelist(nextquad + 1);
+        emit("jnz", rop_expr_inPlace, "_", "_");
+        emit("j", "_", "_", "_");
     }
     return rop_expr;
 }
@@ -406,7 +415,7 @@ static List match_n(void) {
     List n_nextlist;
     debug_print("n -> <epsilon>\n");
     n_nextlist = makelist(nextquad);
-    emit("j", "-", "-", "0");
+    emit("j", "_", "_", "0");
     return n_nextlist;
 }
 
